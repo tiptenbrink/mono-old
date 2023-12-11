@@ -1,20 +1,16 @@
 #!/bin/bash
 
-# # Define function to stop the server gracefully
-# stop_server() {
-#     echo "Stopping the server..."
-#     kill $server_pid
-#     exit 0
-# }
+# Define function to stop the appp gracefully
+stop_app() {
+    echo "Stopping app.."
+    kill $app_pid
+    exit 0
+}
 
-# # Trap SIGTERM signal and run stop_server function
-# trap 'stop_server' SIGTERM
+# Trap SIGTERM signal and run stop_app function
+trap 'stop_app' SIGTERM
 
-# export GUNICORN_CMD_ARGS="--bind=0.0.0.0:{{ server.container_port }} --workers=3"
+node app.js &
+app_pid=$!  # Save the PID of app process
 
-# node app.js &
-# server_pid=$!  # Save the PID of  server process
-
-# wait "$server_pid"  # Wait for server
-
-node app.js
+wait "$app_pid"  # Wait for app
