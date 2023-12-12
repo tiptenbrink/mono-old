@@ -1,20 +1,15 @@
-name: App Build
+name: Deployer Build
 
 on:
     # this allows it to be called from another workflow
     workflow_call:
-      inputs:
-          # this is the environment we're building for
-          env:
-            required: true
-            type: string
 
 permissions:
   packages: write
   contents: read
 
 jobs:
-  build-app:
+  build-deployer:
     runs-on: ubuntu-latest
     steps:
       # we check out the repository
@@ -23,9 +18,7 @@ jobs:
       - name: Move source
         run: |
             mkdir -p deploy/context
-            cp app/*.js deploy/context
-            cp app/*.json deploy/context
-            cp deploy/containers/app/* deploy/context
+            cp deploy/containers/deployer/* deploy/context
       # we log into the GitHub Container Registry (alternative to Docker Hub)
       - name: Login to GitHub Container Registry
         uses: docker/login-action@v3
@@ -43,7 +36,7 @@ jobs:
           # where we moved all the files to that will be used to build the image
           context: deploy/context
           # replace tiptenbrink with your organization name or GitHub username (i.e. the parent name of your repo)
-          tags: ghcr.io/tiptenbrink/hellodeploy-app:${{ inputs.env }}
+          tags: ghcr.io/tiptenbrink/hellodeploy-deployer:latest
           # we use the GitHub Actions (gha) cache to make future builds faster
           cache-from: type=gha
           cache-to: type=gha, mode=max

@@ -1,7 +1,7 @@
 FROM rust:1-slim-bookworm
 
-RUN cargo install bws -y
-RUN cargo install nu -y
+RUN cargo install bws
+RUN cargo install nu
 
 WORKDIR /dployer
 

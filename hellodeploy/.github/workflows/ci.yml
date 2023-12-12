@@ -17,3 +17,6 @@ jobs:
     uses: tiptenbrink/hellodeploy/.github/workflows/app.yml@main
     with:
       env: ${{ matrix.target }}
+  build-deployer:
+    # replace tiptenbrink/hellodeploy with your own repository 
+    uses: tiptenbrink/hellodeploy/.github/workflows/deployer.yml@main
