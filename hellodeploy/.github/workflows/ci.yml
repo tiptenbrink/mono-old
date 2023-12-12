@@ -12,7 +12,7 @@ jobs:
   build-app:
     strategy:
       matrix:
-        target: [ 'staging' ]
+        target: [ 'production' ]
     # replace tiptenbrink/hellodeploy with your own repository 
     uses: tiptenbrink/hellodeploy/.github/workflows/app.yml@main
     with:
