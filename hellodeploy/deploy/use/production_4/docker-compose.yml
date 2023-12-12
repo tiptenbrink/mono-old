@@ -1,0 +1,11 @@
+services:
+  # Service name
+  app:
+    container_name: hellodeploy-app-production
+    # Docker image that it will set up
+    image: ghcr.io/tiptenbrink/hellodeploy-app:production
+    environment:
+      MY_SECRET: ${MY_SECRET:?err}
+    # This maps ports according to host_hostname:host_port:container_port
+    ports:
+      - "127.0.0.1:8871:8871"
