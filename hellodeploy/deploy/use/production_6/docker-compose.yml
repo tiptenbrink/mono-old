@@ -1,0 +1,41 @@
+services:
+  db:
+    container_name: hellodeploy-db-production
+    image: ghcr.io/tiptenbrink/hellodeploy-db:production
+    # A volume is basically a file system shared between the host and the container
+    volumes:
+      # <volume name in volumes below>:<container destination directory>
+      # This means the volume will be accessible from the container in the dest. directory in the container
+      - hellodeploy-db-volume:/hellodeploy-db
+    environment:
+      - PGDATA=/hellodeploy-db
+      - POSTGRES_PASSWORD
+      - POSTGRES_USER
+    ports:
+      - "127.0.0.1:3141:3141"
+  
+  app-multi:
+    depends_on:
+      - db
+    container_name: hellodeploy-app-multi-production
+    image: ghcr.io/tiptenbrink/hellodeploy-app-multi:production
+    environment:
+      MY_SECRET: ${MY_SECRET_VAR:?err}
+      # we're okay if they're empty so we set default empty values
+      POSTGRES_PASSSWORD: ${POSTGRES_PASSSWORD:-}
+      POSTGRES_PORT: ${POSTGRES_PORT:-}
+      APP_MODE: ${APP_MODE}
+    ports:
+      - "127.0.0.1:8871:8871"
+volumes:
+  # This name should correspond to the volume mentioned in volumes above
+  hellodeploy-db-volume:
+    # A local directory
+    driver: local
+    name: hellodeploy-db-volume-production
+networks:
+  # Set up a network so that other containers on this network can access each other
+  # A different container on this network can access this container by using the container name as the hostname
+  # So localhost:3000 is exposed to other containers as <container name>:3000
+  default:
+    name: hellodeploy
