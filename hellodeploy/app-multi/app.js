@@ -1,5 +1,6 @@
 import express from 'express'
-import { Client } from 'pg'
+import pg from 'pg'
+const { Client } = pg
 
 const app = express();
 const port = 8871;
@@ -55,11 +56,12 @@ const environment = process.env.APP_MODE ?? 'production'
 const host = environment === 'localdev' ? '127.0.0.1' : `hellodeploy-db-${environment}`
 
 // We set default values in both cases
-const dbPass = process.env.POSTGRES_PASSSWORD ?? 'postpost'
+const dbPass = process.env.POSTGRES_PASSWORD ?? 'postpost'
 const dbPort = parseInt(process.env.POSTGRES_PORT) ?? 5432
 
 const client = new Client({
   host,
+  user: 'postgres',
   port: dbPort,
   password: dbPass,
 })
