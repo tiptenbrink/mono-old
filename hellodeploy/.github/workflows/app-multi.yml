@@ -19,8 +19,8 @@ jobs:
       - name: Move source
         run: |
             mkdir -p deploy/context
-            cp app/*.js deploy/context
-            cp app/*.json deploy/context
+            cp app-multi/*.js deploy/context
+            cp app-multi/*.json deploy/context
             cp deploy/containers/app-multi/* deploy/context
       - name: Login to GitHub Container Registry
         uses: docker/login-action@v3
