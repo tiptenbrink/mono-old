@@ -24,14 +24,10 @@ app.get('/mode/', (req, res) => {
 });
 
 app.get('/db/', async (req, res) => {
-  const client = await pool.connect()
-
-  const queryRes = await client.query('SELECT $1::text as message', ['Hello deploy!'])
+  const queryRes = await pool.query('SELECT $1::text as message', ['Hello deploy!'])
   const result = queryRes.rows[0].message
 
   res.send(result)
-
-  client.release()
 });
 
 if (!process.env.MY_SECRET) {
