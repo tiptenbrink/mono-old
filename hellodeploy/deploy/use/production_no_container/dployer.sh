@@ -1,15 +1,4 @@
 #!/bin/bash
-
-cleanup() {
-    echo
-    echo "Removing pipe..."
-    rm -f deploypipe
-    exit 1
-}
-
-# if you do Ctrl+C it will run cleanup
-trap cleanup SIGINT
-
 # remove the pipe if it somehow still exists
 rm -f deploypipe
 # create a named fifo pipe at ./deploypipe

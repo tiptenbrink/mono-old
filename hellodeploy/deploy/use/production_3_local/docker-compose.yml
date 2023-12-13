@@ -5,7 +5,7 @@ services:
     # Docker image that it will set up
     image: hellodeploy-app
     environment:
-      MY_SECRET: ${MY_SECRET:?err}
+      MY_SECRET: ${MY_SECRET_VAR:?err}
     # This maps ports according to host_hostname:host_port:container_port
     ports:
       - "127.0.0.1:8871:8871"

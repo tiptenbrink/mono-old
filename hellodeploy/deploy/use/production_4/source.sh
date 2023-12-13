@@ -4,11 +4,10 @@ set -a
 echo "Waiting for secrets..."
 while [ true ] 
 do 
-    # -p means if file exists and is named pipe
-    # $1 is first argument to our script
+    # if file exists and is named pipe
     if [ -p "$1" ]; then
-        echo "Loaded secret."
         . $1
+    # if pipe doesn't exist we don't want to run too many loops
     else
         sleep 1
     fi
@@ -20,5 +19,7 @@ do
         # here we start our compose file as before
         docker compose -p hellodeploy up -d
         break
+    else
+        echo "Loaded secrets."
     fi
 done

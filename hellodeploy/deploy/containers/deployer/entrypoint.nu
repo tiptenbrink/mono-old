@@ -1,5 +1,5 @@
 #!/usr/bin/env nu
-def secret_to_pipe [secret: string, pipe: string] {
+def secret_to_pipe [secret: string] {
     # we request the secret from Bitwarden Secret Manager using its id, loading it as JSON
     let j = bws secret get $secret | from json
     # the key is identical to the environment variable key
@@ -7,7 +7,7 @@ def secret_to_pipe [secret: string, pipe: string] {
     # the value is the actual secret
     let v = $j | get value
     # for each secret we append a newline and <KEY>=<VALUE> to the named pipe
-    echo $"\n($k)=($v)" | save $pipe --append
+    return $"\n($k)=($v)"
 }
 
 def from_deploy [file, pipe: string] {
@@ -15,8 +15,11 @@ def from_deploy [file, pipe: string] {
     let j = open $file --raw | decode utf-8 | from json
     # we get the value of secrets.ids, which is an array of id values
     let secrets = $j | get secrets | get ids
-    # we call the secret_to_pipe function for each id and also add the name of the pipe as an argument
-    for $e in $secrets { secret_to_pipe $e $pipe }
+    # we call the secret_to_pipe function for each id in parallel and join them 
+    # with new lines
+    let output = $secrets | par-each { |e| secret_to_pipe $e } | str join "\n"
+    # the result we send to the pipe
+    echo $output | save $pipe --append
 }
 
 # main entrypoint
