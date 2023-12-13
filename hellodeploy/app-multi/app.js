@@ -1,6 +1,6 @@
 import express from 'express'
 import pg from 'pg'
-const { Client } = pg
+const { Pool } = pg
 
 const app = express();
 const port = 8871;
@@ -23,21 +23,15 @@ app.get('/mode/', (req, res) => {
   res.send(environment);
 });
 
-app.get('/db/', (req, res) => {
-  const query = async () => {
-    await client.connect()
- 
-    const res = await client.query('SELECT $1::text as message', ['Hello deploy!'])
-    const result = res.rows[0].message
+app.get('/db/', async (req, res) => {
+  const client = await pool.connect()
 
-    await client.end()
+  const queryRes = await client.query('SELECT $1::text as message', ['Hello deploy!'])
+  const result = queryRes.rows[0].message
 
-    return result
-  }
+  res.send(result)
 
-  query().then((queryRes) => {
-    res.send(queryRes)
-  })
+  client.release()
 });
 
 if (!process.env.MY_SECRET) {
@@ -59,7 +53,7 @@ const host = environment === 'localdev' ? '127.0.0.1' : `hellodeploy-db-${enviro
 const dbPass = process.env.POSTGRES_PASSWORD ?? 'postpost'
 const dbPort = parseInt(process.env.POSTGRES_PORT) ?? 5432
 
-const client = new Client({
+const pool = new Pool({
   host,
   user: 'postgres',
   port: dbPort,
