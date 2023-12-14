@@ -6,7 +6,7 @@ def secret_to_pipe [secret: string] {
 
     if $bws_exit != 0 {
         print $"Bitwarden Secrets Manager CLI failed with output:\n ($bws_res | get stderr)"
-        exit 1
+        exit $bws_exit
     }
 
     let j = $bws_res | get stdout | from json
