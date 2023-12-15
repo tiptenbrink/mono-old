@@ -18,12 +18,17 @@ def secret_to_pipe [secret: string] {
 
 def from_deploy [file] {
     let j = open $file --raw | decode utf-8 | from json
-    let secrets = $j | get secrets | get ids
+    let secrets = $j | get secrets
     let output = $secrets | par-each { |e| secret_to_pipe $e } | str join "\n"
     print $output
 }
 
 # main entrypoint
 def main [] {
-    from_deploy tidploy.json
+    if ('secrets.json.local' | path exists) {
+        from_deploy secrets.json.local
+    } else {
+        from_deploy secrets.json
+    }
+    
 }
