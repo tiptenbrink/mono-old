@@ -1,0 +1,6 @@
+[workspace]
+resolver = "2"
+members = [
+    "lazy-borink",
+    "lazy-borink-derive"
+]
