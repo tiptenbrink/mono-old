@@ -2,6 +2,9 @@
 name = "lazy-borink-derive"
 version = "0.1.0"
 edition = "2021"
+license = "MIT OR Apache-2.0"
+authors = ["Tip ten Brink <75669206+tiptenbrink@users.noreply.github.com>"]
+description = "Derive macros for UnwrapLazy for lazy-borink."
 
 [lib]
 proc-macro = true
