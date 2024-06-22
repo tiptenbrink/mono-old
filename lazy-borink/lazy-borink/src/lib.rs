@@ -61,15 +61,15 @@ use std::marker::PhantomData;
 /// ```
 ///
 /// Instantiating a Lazy type is free, it doesn't yet do any serialization. But if we then serialize and deserialize, it will still have the original bytes.
-/// However, `Lazy<T>` implements the trait [UnwrapLazy], allowing us to call [UnwrapLazy::unwrap_lazy] to get the structured data.
+/// However, `Lazy<T>` implements the trait [UnwrapLazy] if T implements UnwrapLazy, allowing us to call [UnwrapLazy::unwrap_lazy] to get the structured data.
 ///
 /// ```
-/// # use serde::{Deserialize, Serialize};
-/// # #[derive(Serialize, Deserialize, Debug)]
-/// # struct ServerData { data: String }
-/// # use lazy_borink::Lazy;
-/// # let server_data = ServerData { data: "some_data".to_owned() };
 /// use lazy_borink::UnwrapLazy;
+/// # use lazy_borink::Lazy;
+/// # use serde::{Deserialize, Serialize};
+/// # #[derive(Serialize, Deserialize, Debug, UnwrapLazy)]
+/// # struct ServerData { data: String }
+/// # let server_data = ServerData { data: "some_data".to_owned() };
 ///
 /// let lazy = Lazy::from_inner(server_data);
 /// assert_eq!(format!("{:?}", lazy), "ServerData { data: \"some_data\" }");
@@ -319,7 +319,7 @@ where
 /// # use serde::{Deserialize, Serialize};
 /// use lazy_borink::{Lazy, UnwrapLazy};
 ///
-/// #[derive(Serialize, Deserialize)]
+/// #[derive(Serialize, Deserialize, UnwrapLazy)]
 /// struct Claims {
 ///     my_claim: String,
 /// }
@@ -351,10 +351,10 @@ pub trait UnwrapLazy {
 
 impl<T> UnwrapLazy for Lazy<T>
 where
-    T: DeserializeOwned,
+    T: DeserializeOwned + UnwrapLazy,
 {
     fn unwrap_lazy(self) -> Self {
-        Self::from_inner(self.take())
+        Self::from_inner(self.take().unwrap_lazy())
     }
 
     fn try_unwrap_lazy(self) -> Result<Self, Error> {
@@ -437,7 +437,7 @@ mod test {
     use super::*;
 
     // Assuming Claims is another struct you want to deserialize lazily.
-    #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+    #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, UnwrapLazy)]
     struct Claims {
         my_claim: String,
     }
