@@ -140,6 +140,12 @@ impl<T> Lazy<T> {
     }
 }
 
+impl<T> From<T> for Lazy<T> {
+    fn from(value: T) -> Self {
+        Lazy::from_inner(value)
+    }
+}
+
 impl<T> Lazy<T>
 where
     T: DeserializeOwned,
@@ -534,7 +540,7 @@ mod test {
             my_claim: "hi".to_owned(),
         };
         let claims_bytes = serialize_lazy(&claims);
-        let lazy_claims = Lazy::from_inner(claims.clone());
+        let lazy_claims: Lazy<Claims> = claims.clone().into();
         assert_eq!(
             lazy_claims,
             Lazy {
@@ -570,7 +576,7 @@ mod test {
             my_claim: "hi".to_owned(),
         };
         let claims_bytes = serialize_lazy(&claims);
-        let lazy_claims = Lazy::from_inner(claims.clone());
+        let lazy_claims = Lazy::from(claims.clone());
         let user = User {
             user_id: "abc".to_owned(),
             password_file: "hi".to_owned(),
