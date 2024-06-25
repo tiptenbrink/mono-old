@@ -138,6 +138,19 @@ impl<T> Lazy<T> {
     pub fn is_deserialized(&self) -> bool {
         self.inner.is_some()
     }
+
+    /// Apply `op` to the inner type if it is there, otherwise leave the bytes untouched but return a Lazy<R>.
+    pub fn map<F, R>(self, op: F) -> Lazy<R>
+        where F: FnOnce(T) -> R
+    {
+        if let Some(inner) = self.inner {
+            Lazy::from_inner(op(inner))
+        } else if let Some(bytes) = self.bytes {
+            Lazy::from_bytes(bytes)
+        } else {
+            panic!("Lazy structure is invalid, it contains no data!")
+        }
+    }
 }
 
 impl<T> From<T> for Lazy<T> {
