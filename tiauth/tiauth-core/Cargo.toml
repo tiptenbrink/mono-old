@@ -1,0 +1,78 @@
+[package]
+name = "tiauth-core"
+version = "0.2.0"
+authors = ["Tip ten Brink <75669206+tiptenbrink@users.noreply.github.com>"]
+edition = "2021"
+
+[dependencies]
+redb = { version = "2.1.1", optional = true }
+opaque-borink = { version = "0.5.0", optional = true}
+rand = "0.8"
+hex = "0.4.3"
+rmp = "0.8"
+rmp-serde = "1.3.0"
+rmpv = { version = "1.3.0", features = ["with-serde"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_bytes = "0.11"
+serde_json = "1.0"
+terrors = "=0.3.0"
+base64 = "0.22.1"
+thiserror = "1.0"
+ed25519-compact = "=2.1.1"
+aes-gcm-siv = "=0.11.1"
+zerovec = { version = "0.10.4", features = ["serde", "derive"] }
+tempfile = { version = "3", optional = true }
+rayon = "1.10"
+hmac = "0.12.1"
+sha2 = "0.10.8"
+rand_chacha = "0.3.1"
+crossbeam = "0.8.4"
+ctrlc = "3.4.4"
+bitflags = "2.6.0"
+camino = "1.1.7"
+tracing = "=0.1.40"
+tracing-subscriber = "=0.3.18"
+tracing-error = "=0.2.0"
+itertools = "0.13.0"
+boxcar = "0.2.8"
+
+# systemtime doesn't work on wasm, but we rely on it for creating proofs
+[target.'cfg(all(target_arch = "wasm32", target_os = "unknown"))'.dependencies]
+web-time = "1.1"
+
+[features]
+default = ["action"]
+action = ["dep:redb", "dep:opaque-borink"]
+app = []
+test = ["dep:tempfile"]
+
+[dev-dependencies]
+criterion = "0.5"
+tiauth-core = { path = ".", features = ["test", "action", "app"] }
+
+[[bench]]
+name = "deser"
+harness = false
+
+# [[bin]]
+# name = "experiment"
+# required-features = ["test"]
+
+# [[bin]]
+# name = "experiment_big"
+# required-features = ["test"]
+
+# [[bin]]
+# name = "experiment_ses"
+# required-features = ["test"]
+
+# [[bin]]
+# name = "multi_db"
+# required-features = ["test"]
+
+# [[bin]]
+# name = "shared_counter"
+# required-features = ["test"]
+
+# [profile.release]
+# debug = true

@@ -1,0 +1,254 @@
+use crate::data::{empty_packed, ByteSerial, ClaimsUnsortedError, InvalidClaimsBytes, UserPassword, EPHEMERAL_INTERVAL};
+use crate::error::OneOfTo;
+use crate::proof::{
+    DecryptedSession, Ephemeral, EphemeralProofTokenState, EphemeralType, InvalidEphemeral,
+    InvalidProof, InvalidSession, SessionContent, UnvalidatedProofObject,
+};
+use crate::state::{CounterState, State};
+use crate::store::{sessions, users, StoreError};
+use crate::{AppState, BytePacked, Claims, KeyState, Proof, Session};
+use terrors::OneOf;
+use tracing::debug;
+
+pub fn proof_token(state: &impl State) -> Ephemeral<()> {
+    proof_token_at(state, state.time())
+}
+
+pub fn proof_token_at(state: &impl State, time: u64) -> Ephemeral<()> {
+    debug!("Creating ephemeral proof token...");
+    let expires = time + (EPHEMERAL_INTERVAL * 2);
+    let count = state.counter_next("", expires);
+    let key = state.keys().ephemeral_key(time);
+    debug!("Used key {:?}", key);
+
+    Ephemeral::create(
+        &key,
+        "",
+        EphemeralProofTokenState { count, expires },
+        EphemeralType::ProofToken,
+        time,
+        empty_packed(),
+    )
+}
+
+pub fn decrypt_session(
+    state: &impl State,
+    session: &Session,
+    time: u64,
+) -> Result<DecryptedSession, OneOf<(StoreError, InvalidSession)>> {
+    let keys = state.keys().sess_veri_keys();
+    let store = state.store();
+    let decrypted = session.decrypt(
+        time,
+        keys,
+        |session| {
+            sessions::session_status(store, session)
+                .to_one_of()
+                .map_err(OneOf::broaden)
+        },
+        OneOf::new,
+    )?;
+
+    // let session_status = sessions::session_status(state.store(), session).to_one_of().map_err(OneOf::broaden)?;
+
+    // session_status.valid(time).to_one_of().map_err(OneOf::broaden)?;
+
+    // let session_keys = state.keys().sess_veri_keys();
+    // let session = verify_session_bytes(session, session_keys).to_one_of().map_err(OneOf::broaden)?;
+
+    Ok(decrypted)
+}
+
+pub fn verify_session<'a>(
+    state: &impl State,
+    session: &'a SessionContent<'a>,
+    time: u64,
+    max_age: Option<u64>,
+) -> Result<(&'a BytePacked<Claims>, String), OneOf<(StoreError, InvalidSession)>> {
+    let UserPassword { password_file, .. } = match users::get_login(state.store(), &session.user_id)
+        .to_one_of()
+        .map_err(OneOf::broaden)?
+    {
+        Some(user) => user,
+        None => {
+            println!("User no longer exists!");
+            return Err(OneOf::new(InvalidSession));
+        }
+    };
+
+    let claims = match max_age {
+        Some(max_age) => session.verify_max_age(time, &password_file, max_age),
+        None => session.verify(time, &password_file),
+    }
+    .to_one_of()
+    .map_err(OneOf::broaden)?;
+
+    Ok((claims, password_file))
+}
+
+pub fn check_session(state: &impl State, session: &Session) -> Result<Claims, OneOf<(StoreError, InvalidSession, InvalidClaimsBytes, ClaimsUnsortedError,)>> {
+    let time = state.time();
+    let decrypted = decrypt_session(state, session, time).map_err(OneOf::broaden)?;
+    let session = decrypted.read();
+
+    let (claims, _) = verify_session(state, &session, time, None).map_err(OneOf::broaden)?;
+
+    let view = claims.try_deserialize().to_one_of().map_err(OneOf::broaden)?;
+
+    Ok(view.to_claims_sorted().to_one_of().map_err(OneOf::broaden)?)
+}
+
+// pub fn verify_proof_write<T: ByteSerial>(
+//     state: &impl State,
+//     write_txn: &WriteTransaction,
+//     content: &mut ProofContent<T>,
+// ) -> Result<(), OneOf<(DbError, InvalidProof)>> {
+//     let tables = state.app_tables(&content.about.application);
+//     let nonce = b64::URL_SAFE_NO_PAD.encode(&content.nonce);
+//     let mut eph_table = write_txn.open_table(tables.ephemeral()).to_one_of_two()?;
+//     {
+//         // TODO clean up nonces every so often (after expiry)
+
+//         let nonce_exists = eph_table.get(nonce.as_str()).to_one_of_two()?;
+
+//         if nonce_exists.is_some() {
+//             return Err(OneOf::new(InvalidProof {}));
+//         }
+//     }
+
+//     let proof_expires = format!("{}", content.about.expires);
+//     eph_table
+//         .insert(nonce.as_str(), proof_expires.as_str())
+//         .to_one_of_two()?;
+
+//     Ok(())
+// }
+
+pub fn verify_proof<'a, T: ByteSerial>(
+    state: &impl State,
+    proof: &'a Proof<T>,
+    time: u64,
+) -> Result<UnvalidatedProofObject<'a, T>, OneOf<(InvalidProof,)>>
+where
+{
+    debug!("Verifying proof...");
+    let public_key = state.public_key();
+
+    let proof_ob = proof
+        .verify(public_key, time, |eph| {
+            let keys = state.keys().eph_veri_keys(time);
+
+            let decrypted_eph = eph.decrypt(&keys).map_err(|_| {
+                debug!("Failed to decrypt ephemeral.");
+                InvalidProof
+            })?;
+            let eph = decrypted_eph.read();
+            eph.verify_state::<EphemeralProofTokenState, _>(
+                time,
+                |EphemeralProofTokenState { count, expires }| {
+                    if state.counter_used(eph.user_id, count, expires, time) {
+                        debug!("Ephemeral has already been used.");
+                        return Err(InvalidEphemeral);
+                    }
+
+                    Ok(())
+                },
+            )
+            .map_err(|_| InvalidProof)?;
+
+            Ok(())
+        })
+        .to_one_of()
+        .map_err(OneOf::broaden)?;
+
+    Ok(proof_ob)
+}
+
+#[cfg(feature = "test")]
+pub mod test_util {
+    use crate::data::SerializedAs;
+    use crate::proof::ProofAction;
+    use crate::state::test_util::*;
+    use crate::{ActionType, Target, TargetList};
+
+    use super::*;
+
+    pub fn create_proof_claims(
+        state: &TestState,
+        now: u64,
+        user_id: &str,
+        expires_in: Option<u64>,
+        claims: impl SerializedAs<Claims>,
+    ) -> Proof<Claims> {
+        let key = state.private_key();
+        let expires = now + expires_in.unwrap_or(1800);
+        let eph = proof_token_at(state, now).serialize();
+        Proof::create(
+            key,
+            expires,
+            ProofAction::new(
+                ActionType::SetClaims,
+                Target::Select,
+                TargetList::user(user_id),
+            ),
+            eph.as_packed(),
+            claims.serialized(),
+        )
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::{
+        data::Claims,
+        proof::ProofSingleTarget,
+        state::{test_util::*, DriverState},
+    };
+
+    use test_util::*;
+
+    use super::*;
+
+    // #[test]
+    // fn test_session_verify() {
+    //     let user_id = "hi";
+    //     let app = "abc";
+
+    //     let state = TestState::setup_test(&app);
+
+    //     let claims = Claims::new(vec![("email", "hi@abc.nl"), ("other_claim", "other_value")]);
+
+    //     let session = create_session(
+    //         user_id,
+    //         app,
+    //         EXPIRE_TIME,
+    //         claims.serialize(),
+    //         &state.keys().session_key(),
+    //     );
+
+    //     let session = verify_session(&state.state, &session).unwrap();
+
+    //     let session_read = session.read().unwrap();
+    //     let session_claims = session_read.session_claims.deserialize();
+    //     assert!(claims.eq_view(&session_claims));
+    // }
+
+    #[test]
+    fn test_proof_verify() {
+        let user_id = "hi";
+        let app = "abc";
+
+        let state = TestState::setup_test(app);
+        let claims = Claims::new(vec![("email", "hi@abc.nl"), ("other_claim", "other_value")]);
+        let proof = create_proof_claims(&state, state.time(), user_id, None, claims.serialize());
+
+        let proof_content = verify_proof(&state, &proof, state.time()).unwrap();
+
+        let (claims_val, user_id_val) = proof_content
+            .validate(crate::ActionType::SetClaims, ProofSingleTarget)
+            .unwrap();
+
+        assert!(claims.eq_view(&claims_val));
+        assert_eq!(user_id, user_id_val);
+    }
+}

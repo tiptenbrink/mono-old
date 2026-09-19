@@ -1,0 +1,17 @@
+[package]
+name = "tiauth"
+version = "0.2.0"
+edition = "2021"
+
+[dependencies]
+tiauth-core = { path="../tiauth-core" }
+tiauth-server = { path="../tiauth-server", features = ["router"] }
+redb = "2.1.1"
+axum = "0.7.5"
+tokio = { version = "1.38.0", features = ["macros", "rt-multi-thread", "net"] }
+rand = "0.8"
+tiny_http = "0.12.0"
+tracing = "=0.1.40"
+tracing-subscriber = { version= "=0.3.18", features = ["env-filter"] }
+tracing-error = "=0.2.0"
+ctrlc = "3.4.4"

@@ -1,0 +1,27 @@
+[package]
+name = "tiauth-app-napi"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+tiauth-core = { path = "../tiauth-core", default-features = false, features = ["app"] }
+# tiauth-server = { path = "../tiauth-server", features = ["functions"] }
+
+getrandom = { version = "0.2" }
+# rand = { version = "0.8.5" }
+serde = "1.0"
+serde_bytes = "0.11"
+serde_json = "1.0"
+base64 = "0.22"
+terrors = "=0.3.0"
+thiserror = "1"
+
+
+napi        = { version ="2", features = ["serde-json"] }
+napi-derive = "2"
+
+[build-dependencies]
+napi-build = "2"
