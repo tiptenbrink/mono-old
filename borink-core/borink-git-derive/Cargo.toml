@@ -1,0 +1,41 @@
+[package]
+name = "borink-git-derive"
+version = "0.0.1"
+edition = "2021"
+
+[dependencies]
+thiserror = "2"
+camino = "1"
+tracing = "0.1"
+
+borink-error = { path = "../borink-error" }
+borink-process = { path = "../borink-process" }
+borink-git = { path = "../borink-git" }
+borink-kv = { path = "../borink-kv", optional = true }
+serde = { version = "1", features = ["derive"], optional = true }
+rmp-serde = { version = "1.3", optional = true }
+tiny_http = { version = "0.12", optional = true }
+color-eyre = { version = "0.6", optional = true }
+tracing-subscriber = { version = "0.3", features =["env-filter"], optional = true}
+tracing-error = { version = "0.2", optional = true }
+clap = { version = "=4.5", optional = true, features = ["derive", "env"] }
+reqwest = { version = "=0.12.11", optional = true }
+tokio = { version = "1", features = ["rt"], optional = true }
+
+[features]
+default = ["typst-compile", "kv", "server"]
+typst-compile = []
+kv = ["dep:borink-kv", "dep:serde", "dep:rmp-serde", "borink-git/kv"]
+cli = ["dep:color-eyre", "dep:tracing-subscriber", "dep:tracing-error", "dep:clap"]
+server = ["dep:tiny_http", "dep:color-eyre"]
+server-cli = ["server", "kv", "cli"]
+client = ["dep:reqwest", "dep:tokio"]
+client-cli = ["client", "cli"]
+
+[[bin]]
+name = "borink-git-derive"
+required-features = ["server-cli"]
+
+[[bin]]
+name = "client"
+required-features = ["client-cli"]

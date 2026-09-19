@@ -1,0 +1,12 @@
+[workspace]
+resolver = "2"
+members = [
+    "borink-git",
+    "borink-kv",
+    "borink-error",
+    "borink-process",
+    "borink-git-derive",
+    "borink-git-derive-cli",
+    "borink-auth",
+    "borink-crypto"
+]
