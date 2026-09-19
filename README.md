@@ -5,6 +5,7 @@ directory was a separate repository under `tiptenbrink/`, merged in with its
 full history rewritten into that directory.
 
 - `borink-core`: utility crates, including `borink-git` and `borink-git-derive`
+- `hellodeploy`: example project for the "Deploying your hobby project" article
 - `lazy-borink`: lazy deserialization crate, published on crates.io
 - `tiauth`: Rust authentication server. The directory holds the `v2` branch, the
   newest work. The old `main` branch and the `actions`, `json-db` and
