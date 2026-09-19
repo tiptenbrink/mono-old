@@ -1,0 +1,3 @@
+[[vars]]
+env_name = "BWS_ACCESS_TOKEN"
+key = "bws"
